@@ -62,4 +62,10 @@ public class MainActivity extends AppCompatActivity {
     super.onDestroy();
     executor.shutdown();
   }
+
+  @Override
+  protected void onStart() {
+    super.onStart();
+    ivCover.setImageURI(Uri.parse(Downloader.cached_file_path));
+  }
 }

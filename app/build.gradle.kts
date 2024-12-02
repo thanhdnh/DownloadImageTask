@@ -8,7 +8,7 @@ android {
 
     defaultConfig {
         applicationId = "vn.edu.ueh.thanhdnh.downloadimagetask"
-        minSdk = 29
+        minSdk = 30
         targetSdk = 34
         versionCode = 1
         versionName = "1.0"

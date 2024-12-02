@@ -5,7 +5,6 @@ import android.net.Uri;
 import android.os.Handler;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
-import android.widget.Toast;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -24,6 +23,7 @@ import okio.BufferedSink;
 import okio.Okio;
 
 public class Downloader {
+  public static String cached_file_path = "";
 
   public static File downloadFile(String url, File cached) {
     OkHttpClient client = new OkHttpClient();
@@ -31,7 +31,9 @@ public class Downloader {
 
     try (Response response = client.newCall(request).execute()) {
       if (!response.isSuccessful()) return null;
-      File file = File.createTempFile("downloadedImage", ".jpg", cached);
+      String contentType = response.header("Content-Type", "");
+      String extension = getExtensionFromMimeType(contentType);
+      File file = File.createTempFile("downloaded_file", extension, cached);
       if (response.body() != null) {
         BufferedSink sink = Okio.buffer(Okio.sink(file));
         sink.writeAll(response.body().source());
@@ -52,20 +54,16 @@ public class Downloader {
       public void onFailure(Call call, IOException e) {
         mainHandler.post(() -> {
           progressBar.setVisibility(ProgressBar.INVISIBLE);
-          //Toast.makeText(context, "Download failed: " + e.getMessage(), Toast.LENGTH_SHORT).show();
         });
       }
 
       @Override
       public void onResponse(Call call, Response response) {
         if (!response.isSuccessful()) {
-          mainHandler.post(() -> {
-            //progressBar.setVisibility(ProgressBar.INVISIBLE);
-            //Toast.makeText(context, "Failed to download image", Toast.LENGTH_SHORT).show();
-          });
+          mainHandler.post(() -> {});
           return;
         }
-        //progressBar.setVisibility(ProgressBar.VISIBLE);
+
         long totalBytes = response.body().contentLength();
         InputStream inputStream = response.body().byteStream();
         String contentType = response.header("Content-Type", "");
@@ -82,28 +80,25 @@ public class Downloader {
             int progress = (int) ((downloadedBytes * 100) / totalBytes);
             mainHandler.post(() -> progressBar.setProgress(progress));
           }
-
           outputStream.flush();
 
           mainHandler.post(() -> {
-            imageView.setImageURI(Uri.parse(where2store + "/downloaded_file" + extension));
+            cached_file_path = where2store + "/downloaded_file" + extension;
+            imageView.setImageURI(Uri.parse(cached_file_path));
             progressBar.setVisibility(ProgressBar.INVISIBLE);
-            //Toast.makeText(context, "Download completed", Toast.LENGTH_SHORT).show();
           });
-
         } catch (Exception e) {
-          mainHandler.post(() -> {
-            //progressBar.setVisibility(ProgressBar.INVISIBLE);
-            //Toast.makeText(context, "Failed to save image: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-          });
+          mainHandler.post(() -> {});
         }
       }
     });
   }
+
   private static String getExtensionFromMimeType(String mimeType) {
     Map<String, String> mimeMap = new HashMap<>();
     mimeMap.put("image/jpeg", ".jpg");
     mimeMap.put("image/png", ".png");
+    //mimeMap.put("application/json", ".json");
     return mimeMap.getOrDefault(mimeType, "");
   }
 }
